@@ -13,10 +13,10 @@ class TestGenerate():
         pop2 = generate(0, 0)
         assert pop2 == []
 
-    def test_should_return_list_of_empty_strings_when_pop_size_is_0(self):
+    def test_should_return_list_of_empty_lists_when_pop_size_is_0(self):
         pop = generate(0, 100)
         for p in pop:
-            assert p == ''
+            assert p == []
 
     def test_should_return_the_correct_number_of_genotypes(self):
         pop = generate(50, 100)
@@ -30,4 +30,4 @@ class TestGenerate():
     def test_should_return_genotypes_containing_only_0s_and_1s(self):
         pop = generate(50, 100)
         for p in pop:
-            assert set(p) == set(['0', '1'])
+            assert set(p) == set([0, 1])
