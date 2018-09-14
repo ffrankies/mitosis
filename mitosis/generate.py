@@ -17,7 +17,7 @@ def generate(searchspace_size: int, population_size: int, random_seed: int = 0.1
     - population (list<str>): The generated population
     """
     random.seed(random_seed)
-    population = random.choices(['0','1'], k=112)
+    population = [random.choices(['0','1'], k=searchspace_size) for index in range(population_size)]
     population = [''.join(genotype) for genotype in population]
     return population
 # End of generate()
