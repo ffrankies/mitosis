@@ -1,4 +1,4 @@
-"""Generates "DNA" sequences - the "genotype" of a population.
+"""Generates "DNA" sequences - the "chromosomes" of a population.
 
 @since 0.1.0
 """

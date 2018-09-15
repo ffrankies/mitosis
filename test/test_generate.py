@@ -18,16 +18,16 @@ class TestGenerate():
         for p in pop:
             assert p == []
 
-    def test_should_return_the_correct_number_of_genotypes(self):
+    def test_should_return_the_correct_number_of_chromosomes(self):
         pop = generate(50, 100)
         assert len(pop) == 100
 
-    def test_should_return_genotypes_of_the_correct_size(self):
+    def test_should_return_chromosomes_of_the_correct_size(self):
         pop = generate(50, 100)
         for p in pop:
             assert len(p) == 50
 
-    def test_should_return_genotypes_containing_only_0s_and_1s(self):
+    def test_should_return_chromosomes_containing_only_0s_and_1s(self):
         pop = generate(50, 100)
         for p in pop:
             assert set(p) == set([0, 1])

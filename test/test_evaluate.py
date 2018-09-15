@@ -16,7 +16,7 @@ class TestEvaluate():
         evaluated = evaluate([], eval_add)
         assert evaluated == []
 
-    def test_should_give_empty_tuples_when_genomes_are_empty(self):
+    def test_should_give_empty_tuples_when_chromosomes_are_empty(self):
         pop = generate(0, 100)
         evaluated = evaluate(pop, eval_add)
         for e in evaluated:
