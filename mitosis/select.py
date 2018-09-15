@@ -5,7 +5,6 @@
 
 import random
 from enum import Enum
-from typing import List
 
 
 class SelectionMethod(Enum):
@@ -97,8 +96,11 @@ def _tournament(evaluated_population: list, tournament_size: int = 5, previous_w
 # End of _tournament()
 
 
-def stochastic_universal_sampling_selection(evaluated_population: list, random_seed: float = 0.12345, num_elites: int = 5):
+def stochastic_universal_sampling_selection(evaluated_population: list, random_seed: float = 0.12345,
+                                            num_elites: int = 5) -> list:
     """Uses stochastic universal sampling selection to select parents from the population.
+
+    NOTE: This method does not guarantee that a parent pair is not comprised of two copies of the same chromosome.
 
     Params:
     - evaluated_population (list<tuple<list<int>,float>>): The evaluated population
@@ -108,8 +110,61 @@ def stochastic_universal_sampling_selection(evaluated_population: list, random_s
     Returns:
     - parent_pairs (list<tuple<list<int>,list<int>>): The list of pairs of parent chromosomes to be crossed over
     """
-    raise NotImplementedError()
+    random.seed(random_seed)
+    fitness_ruler = _calculate_accumulated_fitness(evaluated_population)
+    total_fitness = fitness_ruler[-1][1]
+    sample_size = len(evaluated_population) - num_elites
+    distance = total_fitness / sample_size
+    parent_sample_one = _stochastic_universal_sample(fitness_ruler, distance, sample_size)
+    parent_sample_two = _stochastic_universal_sample(fitness_ruler, distance, sample_size)
+    parent_pairs = list(zip(parent_sample_one, parent_sample_two))
+    return parent_pairs
 # End of stochastic_universal_sampling_selection()
+
+
+def _calculate_accumulated_fitness(evaluated_population: list) -> list:
+    """Calculates the accumulated fitness for the evaluated population.
+
+    Params:
+    - evaluated_population (list<tuple<list<int>,float>>): The evaluated population
+
+    Returns:
+    - fitness_ruler (list<tuple<list<int>,float>>): The evaluated population, laid out like a ruler with the fitness 
+                                                    score being accumulated over the entire population
+    """
+    fitness_ruler = list()
+    accumulated_fitness = 0.0
+    for chromosome in evaluated_population:
+        accumulated_fitness += chromosome[1]
+        fitness_ruler.append((chromosome[0], accumulated_fitness))
+    return fitness_ruler
+# End of _calculate_accumulated_fitness()
+
+
+def _stochastic_universal_sample(fitness_ruler: list, distance: float, sample_size: int) -> list:
+    """Returns a stochastic universal sample using the given fitness ruler. The selected sample is then shuffled to
+    ensure that it is not in a predictable order.
+
+    Params:
+    - fitness_ruler (list<tuple<list<int>,float>>): The fitness ruler comprised of chromosomes and their cumulative
+                                                    fitness scores
+    - distance (float): The distance between sample selections
+    - sample_size (int): The size of the sample to select
+
+    Returns:
+    - sample (list<list<int>>): The selected sample
+    """
+    sample = list()
+    target_cumulative_fitness = random.random() * distance
+    chromosome_index = 0
+    while len(sample) < sample_size:
+        while fitness_ruler[chromosome_index][1] < target_cumulative_fitness:
+            chromosome_index += 1
+        sample.append(fitness_ruler[chromosome_index][0])
+        target_cumulative_fitness += distance
+    random.shuffle(sample)
+    return sample
+# End of _stochastic_universal_sample()
 
 
 def reward_based_selection(evaluated_population: list, random_seed: float = 0.12345, num_elites: int = 5):
@@ -140,3 +195,13 @@ def fitness_proportionate_selection(evaluated_population: list, random_seed: flo
     """
     raise NotImplementedError()
 # End of fitness_proportionate_selection()
+
+
+"""Resources Used:
+
+- https://en.wikipedia.org/wiki/Selection_(genetic_algorithm)
+- https://en.wikipedia.org/wiki/Tournament_selection
+- https://stackoverflow.com/questions/31933784/tournament-selection-in-genetic-algorithm
+- https://cstheory.stackexchange.com/questions/14758/tournament-selection-in-genetic-algorithms
+- https://en.wikipedia.org/wiki/Stochastic_universal_sampling
+"""
