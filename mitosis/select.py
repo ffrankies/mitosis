@@ -61,6 +61,10 @@ def tournament_selection(evaluated_population: list, random_seed: float = 0.1234
                          tournament_size: int = 5):
     """Uses tournament selection to select parents from the population.
 
+    Tournament selection here works by selection tournament_size individuals from the population at random. The fittest
+    individual of those chosen is the 'winner' of the tournament. One tournament is held for each parent, which
+    means that the number of tournaments held is 2 * the number of children.
+
     Params:
     - evaluated_population (list<tuple<list<int>,float>>): The evaluated population
     - random_seed (float): The seed for the random number generator
