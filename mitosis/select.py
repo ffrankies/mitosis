@@ -5,6 +5,7 @@
 
 import random
 from enum import Enum
+from typing import List
 
 
 class SelectionMethod(Enum):
@@ -72,7 +73,7 @@ def tournament_selection(evaluated_population: list, random_seed: float = 0.1234
 # End of tournament_selection()
 
 
-def _tournament(evaluated_population: list, tournament_size: int = 5):
+def _tournament(evaluated_population: list, tournament_size: int = 5, previous_winner: list = None):
     """Selects tournament_size number of chromosomes to 'compete' against each other. The chromosome with the highest
     fitness score 'wins' the tournament.
 
@@ -81,13 +82,17 @@ def _tournament(evaluated_population: list, tournament_size: int = 5):
     - tournament_size (int): Specifies the size of the tournament. When equal to 1, the
                              method is equivalent to random selection. The higher the tournament size, the higher the
                              bias towards the fitter individuals.
+    - previous_winner (list<int>): The winner of the previous tournament. If the same chromosome wins both tournaments,
+                                   then the runner-up to the current tournament is chosen.
 
     Returns:
     - winner (list<int>): The chromosome with the highest score in the tournament
     """
     tournament = random.sample(evaluated_population, tournament_size)
     tournament.sort(key=lambda evaluated_chromosome: evaluated_chromosome[1])
-    winner = tournament[0][0]
+    winner = tournament[0][0]  # pylint: disable=E1136
+    if winner == previous_winner:
+        winner = tournament[1][0]  # pylint: disable=E1136
     return winner
 # End of _tournament()
 
