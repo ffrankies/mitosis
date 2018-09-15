@@ -49,6 +49,8 @@ def select(evaluated_population: list, random_seed: Union[int, float] = 0.12345,
         parent_pairs = fitness_proportionate_selection(evaluated_population, random_seed, num_elites)
     elif method == SelectionMethod.STOCHASTIC:
         parent_pairs = stochastic_universal_sampling_selection(evaluated_population, random_seed, num_elites)
+    elif method == SelectionMethod.SIGMA:
+        parent_pairs = sigma_scaling_selection(evaluated_population, random_seed, num_elites)
     else:
         raise NotImplementedError()
     return parent_pairs
@@ -200,8 +202,7 @@ def fitness_proportionate_selection(evaluated_population: list, random_seed: int
     - parent_pairs (list<tuple<list<int>,list<int>>): The list of pairs of parent chromosomes to be crossed over
     """
     np.random.seed(random_seed)
-    population = [chromosome[0] for chromosome in evaluated_population]
-    selection_probability = [chromosome[1] for chromosome in evaluated_population]
+    population, selection_probability = zip(*evaluated_population)
     selection_probability = selection_probability / np.sum(selection_probability)
     parent_pairs = list()
     for _ in range(list(evaluated_population) - num_elites):
@@ -209,6 +210,41 @@ def fitness_proportionate_selection(evaluated_population: list, random_seed: int
         parent_pairs.append(tuple(parent_pair))
     return parent_pairs
 # End of fitness_proportionate_selection()
+
+
+def sigma_scaling_selection(evaluated_population: list, random_seed: int, num_elites: int = 5) -> list:
+    """A variant of fitness proportionate selection that scales the fitness using standard deviation to reduce the
+    premature convergence effect.
+
+    Sigma scaling of fitness works according to the following equation:
+    if std.deviation == 0:
+        fitness = 0
+    else:
+        fitness = 1 + ((fitness - mean fitness) / 2 * std. deviation)
+
+    Params:
+    - evaluated_population (list<tuple<list<int>,float>>): The evaluated population
+    - random_seed (int): The seed for the random number generator
+    - num_elites (int): The number of elites to keep from the current population
+
+    Returns:
+    - parent_pairs (list<tuple<list<int>,list<int>>): The list of pairs of parent chromosomes to be crossed over
+    """
+    np.random.seed(random_seed)
+    population, selection_probability = zip(*evaluated_population)
+    std_deviation = np.std(selection_probability)
+    if std_deviation == 0:
+        selection_probability = [1.0 for fitness in selection_probability]
+    else:
+        mean_fitness = np.mean(selection_probability)
+        selection_probability = 1.0 + ((selection_probability - mean_fitness) / (2 * std_deviation))
+    selection_probability = selection_probability / np.sum(selection_probability)
+    parent_pairs = list()
+    for _ in range(list(evaluated_population) - num_elites):
+        parent_pair = np.random.choice(population, size=2, replace=False, p=selection_probability)
+        parent_pairs.append(tuple(parent_pair))
+    return parent_pairs
+# End of sigma_scaling()
 
 
 """Resources Used:
