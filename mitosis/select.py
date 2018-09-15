@@ -225,6 +225,7 @@ def sigma_scaling_selection(evaluated_population: list, random_seed: int, num_el
         fitness = 0
     else:
         fitness = 1 + ((fitness - mean fitness) / 2 * std. deviation)
+    @see http://www.boente.eti.br/fuzzy/ebook-fuzzy-mitchell.pdf
 
     Params:
     - evaluated_population (list<tuple<list<int>,float>>): The evaluated population
@@ -249,6 +250,39 @@ def sigma_scaling_selection(evaluated_population: list, random_seed: int, num_el
         parent_pairs.append(tuple(parent_pair))
     return parent_pairs
 # End of sigma_scaling()
+
+
+def boltzmann_selection(evaluated_population: list, random_seed: int, num_elites: int = 5,
+                        temperature: float = 1.0) -> list:
+    """A variant of fitness proportionate selection that scales the fitness using Euler's number to reduce the
+    premature convergence effect.
+
+    Sigma scaling of fitness works according to the following equation:
+    fitness = e^(fitness / temperature) / mean of e^(fitness / temperature) for the population
+    @see http://www.boente.eti.br/fuzzy/ebook-fuzzy-mitchell.pdf
+
+    Params:
+    - evaluated_population (list<tuple<list<int>,float>>): The evaluated population
+    - random_seed (int): The seed for the random number generator
+    - num_elites (int): The number of elites to keep from the current population
+    - temperature (float): Used to scale the fitness of the population. The lower the temperature, the higher the
+                           difference between the high and low fitnesses. It is expected that the temperature is
+                           decreased over time according to some schedule
+
+    Returns:
+    - parent_pairs (list<tuple<list<int>,list<int>>): The list of pairs of parent chromosomes to be crossed over
+    """
+    np.random.seed(random_seed)
+    population, selection_probability = zip(*evaluated_population)
+    selection_probability = np.exp(np.array(selection_probability) / temperature)
+    selection_probability = selection_probability / np.mean(selection_probability)
+    selection_probability = selection_probability / np.sum(selection_probability)
+    parent_pairs = list()
+    for _ in range(list(evaluated_population) - num_elites):
+        parent_pair = np.random.choice(population, size=2, replace=False, p=selection_probability)
+        parent_pairs.append(tuple(parent_pair))
+    return parent_pairs
+# End of boltzmann_selection()
 
 
 """Resources Used:
