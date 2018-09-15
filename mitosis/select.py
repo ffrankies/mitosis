@@ -3,6 +3,7 @@
 @since 0.1.0
 """
 
+import random
 from enum import Enum
 
 
@@ -16,90 +17,120 @@ class SelectionMethod(Enum):
 # End of SelectionMethod()
 
 
-def select(evaluated_population: list, random_seed: float = 0.12345, elites: int = 5,
-           method: SelectionMethod = SelectionMethod.TOURNAMENT):
+def select(evaluated_population: list, random_seed: float = 0.12345, num_elites: int = 5,
+           method: SelectionMethod = SelectionMethod.TOURNAMENT, tournament_size: int = 5):
     """Uses the correct evaluation method to select from the population.
 
     Params:
     - evaluated_population (list<tuple<list<int>,float>>): The evaluated population
     - random_seed (float): The seed for the random number generator
-    - elites (int): The number of elites to keep from the current population
+    - num_elites (int): The number of elites to keep from the current population
     - method (SelectionMethod): The selection method to use
 
+    Method-specific params:
+    - tournament_size (int): In the tournament method, specifies the size of the tournament. When equal to 1, the
+                             method is equivalent to random selection. The higher the tournament size, the higher the
+                             bias towards the fitter individuals.
+
     Returns:
-    - elites (list<list<int>>): The elites from the evaluated population
     - parent_pairs (list<tuple<list<int>,list<int>>): The list of pairs of parent chromosomes to be crossed over
     """
     if method == SelectionMethod.TOURNAMENT:
-        elites, parent_pairs = tournament_selection(evaluated_population, random_seed, elites)
+        parent_pairs = tournament_selection(evaluated_population, random_seed, num_elites, tournament_size)
     elif method == SelectionMethod.FITNESS:
-        elites, parent_pairs = fitness_proportionate_selection(evaluated_population, random_seed, elites)
+        parent_pairs = fitness_proportionate_selection(evaluated_population, random_seed, num_elites)
     elif method == SelectionMethod.REWARD:
-        elites, parent_pairs = reward_based_selection(evaluated_population, random_seed, elites)
+        parent_pairs = reward_based_selection(evaluated_population, random_seed, num_elites)
     else:  # method == SelectionMethod.STOCHASTIC
-        elites, parent_pairs = stochastic_universal_sampling_selection(evaluated_population, random_seed, elites)
-    return elites, parent_pairs
+        parent_pairs = stochastic_universal_sampling_selection(evaluated_population, random_seed, num_elites)
+    return parent_pairs
 # End of select()
 
 
-def tournament_selection(evaluated_population: list, random_seed: float = 0.12345, elites: int = 5):
+def tournament_selection(evaluated_population: list, random_seed: float = 0.12345, num_elites: int = 5, 
+                         tournament_size: int = 5):
     """Uses tournament selection to select parents from the population.
 
     Params:
     - evaluated_population (list<tuple<list<int>,float>>): The evaluated population
     - random_seed (float): The seed for the random number generator
-    - elites (int): The number of elites to keep from the current population
+    - num_elites (int): The number of elites to keep from the current population
+    - tournament_size (int): Specifies the size of the tournament. When equal to 1, the
+                             method is equivalent to random selection. The higher the tournament size, the higher the
+                             bias towards the fitter individuals.
 
     Returns:
-    - elites (list<list<int>>): The elites from the evaluated population
     - parent_pairs (list<tuple<list<int>,list<int>>): The list of pairs of parent chromosomes to be crossed over
     """
-    raise NotImplementedError()
+    random.seed(random_seed)
+    parent_pairs = list()
+    for _ in range(len(evaluated_population) - num_elites):
+        parent_one = _tournament(evaluated_population, tournament_size)
+        parent_two = _tournament(evaluated_population, tournament_size)
+        parent_pairs.append((parent_one, parent_two))
+    return parent_pairs
 # End of tournament_selection()
 
 
-def stochastic_universal_sampling_selection(evaluated_population: list, random_seed: float = 0.12345, elites: int = 5):
+def _tournament(evaluated_population: list, tournament_size: int = 5):
+    """Selects tournament_size number of chromosomes to 'compete' against each other. The chromosome with the highest
+    fitness score 'wins' the tournament.
+
+    Params:
+    - evaluated_population (list<tuple<list<int>,float>>): The evaluated population
+    - tournament_size (int): Specifies the size of the tournament. When equal to 1, the
+                             method is equivalent to random selection. The higher the tournament size, the higher the
+                             bias towards the fitter individuals.
+
+    Returns:
+    - winner (list<int>): The chromosome with the highest score in the tournament
+    """
+    tournament = random.sample(evaluated_population, tournament_size)
+    tournament.sort(key=lambda evaluated_chromosome: evaluated_chromosome[1])
+    winner = tournament[0][0]
+    return winner
+# End of _tournament()
+
+
+def stochastic_universal_sampling_selection(evaluated_population: list, random_seed: float = 0.12345, num_elites: int = 5):
     """Uses stochastic universal sampling selection to select parents from the population.
 
     Params:
     - evaluated_population (list<tuple<list<int>,float>>): The evaluated population
     - random_seed (float): The seed for the random number generator
-    - elites (int): The number of elites to keep from the current population
+    - num_elites (int): The number of elites to keep from the current population
 
     Returns:
-    - elites (list<list<int>>): The elites from the evaluated population
     - parent_pairs (list<tuple<list<int>,list<int>>): The list of pairs of parent chromosomes to be crossed over
     """
     raise NotImplementedError()
 # End of stochastic_universal_sampling_selection()
 
 
-def reward_based_selection(evaluated_population: list, random_seed: float = 0.12345, elites: int = 5):
+def reward_based_selection(evaluated_population: list, random_seed: float = 0.12345, num_elites: int = 5):
     """Uses the reward based selection to select parents from the population.
 
     Params:
     - evaluated_population (list<tuple<list<int>,float>>): The evaluated population
     - random_seed (float): The seed for the random number generator
-    - elites (int): The number of elites to keep from the current population
+    - num_elites (int): The number of elites to keep from the current population
 
     Returns:
-    - elites (list<list<int>>): The elites from the evaluated population
     - parent_pairs (list<tuple<list<int>,list<int>>): The list of pairs of parent chromosomes to be crossed over
     """
     raise NotImplementedError()
 # End of reward_based_selection()
 
 
-def fitness_proportionate_selection(evaluated_population: list, random_seed: float = 0.12345, elites: int = 5):
+def fitness_proportionate_selection(evaluated_population: list, random_seed: float = 0.12345, num_elites: int = 5):
     """Uses the fitness proportionate selection to select parents from the population.
 
     Params:
     - evaluated_population (list<tuple<list<int>,float>>): The evaluated population
     - random_seed (float): The seed for the random number generator
-    - elites (int): The number of elites to keep from the current population
+    - num_elites (int): The number of elites to keep from the current population
 
     Returns:
-    - elites (list<list<int>>): The elites from the evaluated population
     - parent_pairs (list<tuple<list<int>,list<int>>): The list of pairs of parent chromosomes to be crossed over
     """
     raise NotImplementedError()
