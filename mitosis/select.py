@@ -5,6 +5,9 @@
 
 import random
 from enum import Enum
+from typing import Union
+
+import numpy as np
 
 
 class SelectionMethod(Enum):
@@ -12,18 +15,23 @@ class SelectionMethod(Enum):
     """
     TOURNAMENT = 1  # Tournament selection
     STOCHASTIC = 2  # Stochastic universal sampling
-    REWARD = 3      # Reward-based selection
-    FITNESS = 4     # Fitness proportionate selection
+    FITNESS = 3     # Fitness proportionate selection
+    SIGMA = 4       # Sigma scaling selection
+    BOLTZMANN = 5   # Boltzmann selection
+    RANK = 6        # Rank selection
+    # REWARD = 7      # Reward-based selection: this is not expected to be implemented, as it does not seem to be
+                      # widely explored in literature, and requires keeping fitness information about parent
+                      # chromosomes
 # End of SelectionMethod()
 
 
-def select(evaluated_population: list, random_seed: float = 0.12345, num_elites: int = 5,
+def select(evaluated_population: list, random_seed: Union[int, float] = 0.12345, num_elites: int = 5,
            method: SelectionMethod = SelectionMethod.TOURNAMENT, tournament_size: int = 5):
     """Uses the correct evaluation method to select from the population.
 
     Params:
     - evaluated_population (list<tuple<list<int>,float>>): The evaluated population
-    - random_seed (float): The seed for the random number generator
+    - random_seed (int or float): The seed for the random number generator
     - num_elites (int): The number of elites to keep from the current population
     - method (SelectionMethod): The selection method to use
 
@@ -39,10 +47,10 @@ def select(evaluated_population: list, random_seed: float = 0.12345, num_elites:
         parent_pairs = tournament_selection(evaluated_population, random_seed, num_elites, tournament_size)
     elif method == SelectionMethod.FITNESS:
         parent_pairs = fitness_proportionate_selection(evaluated_population, random_seed, num_elites)
-    elif method == SelectionMethod.REWARD:
-        parent_pairs = reward_based_selection(evaluated_population, random_seed, num_elites)
-    else:  # method == SelectionMethod.STOCHASTIC
+    elif method == SelectionMethod.STOCHASTIC:
         parent_pairs = stochastic_universal_sampling_selection(evaluated_population, random_seed, num_elites)
+    else:
+        raise NotImplementedError()
     return parent_pairs
 # End of select()
 
@@ -99,6 +107,11 @@ def _tournament(evaluated_population: list, tournament_size: int = 5, previous_w
 def stochastic_universal_sampling_selection(evaluated_population: list, random_seed: float = 0.12345,
                                             num_elites: int = 5) -> list:
     """Uses stochastic universal sampling selection to select parents from the population.
+
+    This transforms the fitness scores of the chromosomes into a 'ruler,' with the length being the cumulative fitness
+    score of the chromosomes. Chromosomes are then sampled using equal spacing along the ruler. This method
+    has been known to cause premature convergence by over-emphasizing the selection potential of highly fit
+    chromosomes. @see http://www.boente.eti.br/fuzzy/ebook-fuzzy-mitchell.pdf Chapter 5.4
 
     NOTE: This method does not guarantee that a parent pair is not comprised of two copies of the same chromosome.
 
@@ -167,33 +180,34 @@ def _stochastic_universal_sample(fitness_ruler: list, distance: float, sample_si
 # End of _stochastic_universal_sample()
 
 
-def reward_based_selection(evaluated_population: list, random_seed: float = 0.12345, num_elites: int = 5):
-    """Uses the reward based selection to select parents from the population.
-
-    Params:
-    - evaluated_population (list<tuple<list<int>,float>>): The evaluated population
-    - random_seed (float): The seed for the random number generator
-    - num_elites (int): The number of elites to keep from the current population
-
-    Returns:
-    - parent_pairs (list<tuple<list<int>,list<int>>): The list of pairs of parent chromosomes to be crossed over
-    """
-    raise NotImplementedError()
-# End of reward_based_selection()
-
-
-def fitness_proportionate_selection(evaluated_population: list, random_seed: float = 0.12345, num_elites: int = 5):
+def fitness_proportionate_selection(evaluated_population: list, random_seed: int = 12345, num_elites: int = 5):
     """Uses the fitness proportionate selection to select parents from the population.
 
+    This selects chromosomes from the population using their relative fitness as their selection probability.
+    Chromosomes are then sampled using equal spacing along the ruler. This method has been known to cause premature 
+    convergence by over-emphasizing the selection potential of highly fit chromosomes. 
+    @see http://www.boente.eti.br/fuzzy/ebook-fuzzy-mitchell.pdf Chapter 5.4
+
+    NOTE: The random seed passed into this function must be convertible to a 32-bit unsigned integer, due to the
+          function's dependence on numpy's random module.
+
     Params:
     - evaluated_population (list<tuple<list<int>,float>>): The evaluated population
-    - random_seed (float): The seed for the random number generator
+    - random_seed (int): The seed for the random number generator
     - num_elites (int): The number of elites to keep from the current population
 
     Returns:
     - parent_pairs (list<tuple<list<int>,list<int>>): The list of pairs of parent chromosomes to be crossed over
     """
-    raise NotImplementedError()
+    np.random.seed(random_seed)
+    population = [chromosome[0] for chromosome in evaluated_population]
+    selection_probability = [chromosome[1] for chromosome in evaluated_population]
+    selection_probability = selection_probability / np.sum(selection_probability)
+    parent_pairs = list()
+    for _ in range(list(evaluated_population) - num_elites):
+        parent_pair = np.random.choice(population, size=2, replace=False, p=selection_probability)
+        parent_pairs.append(tuple(parent_pair))
+    return parent_pairs
 # End of fitness_proportionate_selection()
 
 
@@ -204,4 +218,6 @@ def fitness_proportionate_selection(evaluated_population: list, random_seed: flo
 - https://stackoverflow.com/questions/31933784/tournament-selection-in-genetic-algorithm
 - https://cstheory.stackexchange.com/questions/14758/tournament-selection-in-genetic-algorithms
 - https://en.wikipedia.org/wiki/Stochastic_universal_sampling
+- https://ipfs.io/ipfs/QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco/wiki/Reward-based_selection.html
+- http://www.boente.eti.br/fuzzy/ebook-fuzzy-mitchell.pdf
 """
