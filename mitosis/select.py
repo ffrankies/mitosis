@@ -5,9 +5,14 @@
 
 import random
 from enum import Enum
-from typing import Union
+from typing import Union, List, Tuple
 
 import numpy as np
+
+
+Chromosome = List[int]
+Eval = Tuple[Chromosome, float]
+Parents = Tuple[Chromosome, Chromosome]
 
 
 class SelectionMethod(Enum):
@@ -25,8 +30,9 @@ class SelectionMethod(Enum):
 # End of SelectionMethod()
 
 
-def select(evaluated_population: list, random_seed: Union[int, float] = 0.12345, num_elites: int = 5,
-           method: SelectionMethod = SelectionMethod.TOURNAMENT, tournament_size: int = 5):
+def select(evaluated_population: List[Eval], random_seed: Union[int, float] = 0.12345, num_elites: int = 5,
+           method: SelectionMethod = SelectionMethod.TOURNAMENT, tournament_size: int = 5,
+           temperature: float = 1.0) -> List[Parents]:
     """Uses the correct evaluation method to select from the population.
 
     Params:
@@ -39,6 +45,9 @@ def select(evaluated_population: list, random_seed: Union[int, float] = 0.12345,
     - tournament_size (int): In the tournament method, specifies the size of the tournament. When equal to 1, the
                              method is equivalent to random selection. The higher the tournament size, the higher the
                              bias towards the fitter individuals.
+    - temperature (float): In the Boltzmann selection method, used to scale the fitness of the population. The lower
+                           the temperature, the higher the difference between the high and low fitnesses. It is
+                           expected that the temperature is decreased over time according to some schedule
 
     Returns:
     - parent_pairs (list<tuple<list<int>,list<int>>): The list of pairs of parent chromosomes to be crossed over
@@ -51,14 +60,18 @@ def select(evaluated_population: list, random_seed: Union[int, float] = 0.12345,
         parent_pairs = stochastic_universal_sampling_selection(evaluated_population, random_seed, num_elites)
     elif method == SelectionMethod.SIGMA:
         parent_pairs = sigma_scaling_selection(evaluated_population, random_seed, num_elites)
+    elif method == SelectionMethod.BOLTZMANN:
+        parent_pairs = boltzmann_selection(evaluated_population, random_seed, num_elites, temperature)
+    elif method == SelectionMethod.RANK:
+        parent_pairs = boltzmann_selection(evaluated_population, random_seed, num_elites)
     else:
         raise NotImplementedError()
     return parent_pairs
 # End of select()
 
 
-def tournament_selection(evaluated_population: list, random_seed: float = 0.12345, num_elites: int = 5, 
-                         tournament_size: int = 5):
+def tournament_selection(evaluated_population: List[Eval], random_seed: float = 0.12345, num_elites: int = 5, 
+                         tournament_size: int = 5) -> List[Parents]:
     """Uses tournament selection to select parents from the population.
 
     Tournament selection here works by selection tournament_size individuals from the population at random. The fittest
@@ -86,7 +99,8 @@ def tournament_selection(evaluated_population: list, random_seed: float = 0.1234
 # End of tournament_selection()
 
 
-def _tournament(evaluated_population: list, tournament_size: int = 5, previous_winner: list = None):
+def _tournament(evaluated_population: List[Eval], tournament_size: int = 5,
+                previous_winner: Chromosome = None) -> Chromosome:
     """Selects tournament_size number of chromosomes to 'compete' against each other. The chromosome with the highest
     fitness score 'wins' the tournament.
 
@@ -110,8 +124,8 @@ def _tournament(evaluated_population: list, tournament_size: int = 5, previous_w
 # End of _tournament()
 
 
-def stochastic_universal_sampling_selection(evaluated_population: list, random_seed: float = 0.12345,
-                                            num_elites: int = 5) -> list:
+def stochastic_universal_sampling_selection(evaluated_population: List[Eval], random_seed: float = 0.12345,
+                                            num_elites: int = 5) -> List[Parents]:
     """Uses stochastic universal sampling selection to select parents from the population.
 
     This transforms the fitness scores of the chromosomes into a 'ruler,' with the length being the cumulative fitness
@@ -141,7 +155,7 @@ def stochastic_universal_sampling_selection(evaluated_population: list, random_s
 # End of stochastic_universal_sampling_selection()
 
 
-def _calculate_accumulated_fitness(evaluated_population: list) -> list:
+def _calculate_accumulated_fitness(evaluated_population: List[Eval]) -> List[Eval]:
     """Calculates the accumulated fitness for the evaluated population.
 
     Params:
@@ -160,7 +174,7 @@ def _calculate_accumulated_fitness(evaluated_population: list) -> list:
 # End of _calculate_accumulated_fitness()
 
 
-def _stochastic_universal_sample(fitness_ruler: list, distance: float, sample_size: int) -> list:
+def _stochastic_universal_sample(fitness_ruler: List[Eval], distance: float, sample_size: int) -> List[Chromosome]:
     """Returns a stochastic universal sample using the given fitness ruler. The selected sample is then shuffled to
     ensure that it is not in a predictable order.
 
@@ -186,7 +200,8 @@ def _stochastic_universal_sample(fitness_ruler: list, distance: float, sample_si
 # End of _stochastic_universal_sample()
 
 
-def fitness_proportionate_selection(evaluated_population: list, random_seed: int = 12345, num_elites: int = 5):
+def fitness_proportionate_selection(evaluated_population: List[Eval], random_seed: int = 12345,
+                                    num_elites: int = 5) -> List[Parents]:
     """Uses the fitness proportionate selection to select parents from the population.
 
     This selects chromosomes from the population using their relative fitness as their selection probability.
@@ -216,7 +231,7 @@ def fitness_proportionate_selection(evaluated_population: list, random_seed: int
 # End of fitness_proportionate_selection()
 
 
-def sigma_scaling_selection(evaluated_population: list, random_seed: int, num_elites: int = 5) -> list:
+def sigma_scaling_selection(evaluated_population: List[Eval], random_seed: int, num_elites: int = 5) -> List[Parents]:
     """A variant of fitness proportionate selection that scales the fitness using standard deviation to reduce the
     premature convergence effect.
 
@@ -252,8 +267,8 @@ def sigma_scaling_selection(evaluated_population: list, random_seed: int, num_el
 # End of sigma_scaling()
 
 
-def boltzmann_selection(evaluated_population: list, random_seed: int, num_elites: int = 5,
-                        temperature: float = 1.0) -> list:
+def boltzmann_selection(evaluated_population: List[Eval], random_seed: int, num_elites: int = 5,
+                        temperature: float = 1.0) -> List[Parents]:
     """A variant of fitness proportionate selection that scales the fitness using Euler's number to reduce the
     premature convergence effect.
 
@@ -283,6 +298,36 @@ def boltzmann_selection(evaluated_population: list, random_seed: int, num_elites
         parent_pairs.append(tuple(parent_pair))
     return parent_pairs
 # End of boltzmann_selection()
+
+
+def rank_selection(evaluated_population: List[Eval], random_seed: int = 12345, num_elites: int = 5) -> List[Parents]:
+    """Uses the fitness proportionate selection to select parents from the population.
+
+    This selects chromosomes from the population using their relative rank as their selection probability.
+
+    NOTE: The random seed passed into this function must be convertible to a 32-bit unsigned integer, due to the
+          function's dependence on numpy's random module.
+
+    Params:
+    - evaluated_population (list<tuple<list<int>,float>>): The evaluated population
+    - random_seed (int): The seed for the random number generator
+    - num_elites (int): The number of elites to keep from the current population
+
+    Returns:
+    - parent_pairs (list<tuple<list<int>,list<int>>): The list of pairs of parent chromosomes to be crossed over
+    """
+    np.random.seed(random_seed)
+    ranked_population = sorted(evaluated_population, key=lambda chromosome: chromosome[1], reverse=True)
+    for rank in range(1, len(ranked_population) + 1):
+        ranked_population[rank - 1][1] = rank
+    population, selection_probability = zip(*ranked_population)
+    selection_probability = selection_probability / np.sum(selection_probability)
+    parent_pairs = list()
+    for _ in range(list(evaluated_population) - num_elites):
+        parent_pair = np.random.choice(population, size=2, replace=False, p=selection_probability)
+        parent_pairs.append(tuple(parent_pair))
+    return parent_pairs
+# End of rank_selection()
 
 
 """Resources Used:
