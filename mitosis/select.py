@@ -6,6 +6,7 @@
 import random
 from enum import Enum
 from typing import Union, List, Tuple
+from multiprocessing import process
 
 import numpy as np
 
@@ -50,6 +51,7 @@ def select(evaluated_population: List[Eval], random_seed: Union[int, float] = 0.
                            expected that the temperature is decreased over time according to some schedule
 
     Returns:
+    - elites (list<list<int>>): The elite chromosomes chosen from the evaluated population
     - parent_pairs (list<tuple<list<int>,list<int>>): The list of pairs of parent chromosomes to be crossed over
     """
     if method == SelectionMethod.TOURNAMENT:
@@ -66,7 +68,8 @@ def select(evaluated_population: List[Eval], random_seed: Union[int, float] = 0.
         parent_pairs = boltzmann_selection(evaluated_population, random_seed, num_elites)
     else:
         raise NotImplementedError()
-    return parent_pairs
+    elites = choose_elites(evaluated_population, num_elites)
+    return elites, parent_pairs
 # End of select()
 
 
@@ -328,6 +331,36 @@ def rank_selection(evaluated_population: List[Eval], random_seed: int = 12345, n
         parent_pairs.append(tuple(parent_pair))
     return parent_pairs
 # End of rank_selection()
+
+
+def choose_elites(evaluated_population: List[Eval], num_elites: int) -> List[Chromosome]:
+    """Picks num_elites elites from the evaluated population.
+
+    Params:
+    - evaluated_population (List[Eval]): The evaluated list of all chromosomes in the population
+    - num_elites (int): The number of elites to keep from the current population
+
+    Returns:
+    - elites (List[Chromosome]): The elite chromosomes chosen
+    """
+    sorted_population = _sort(evaluated_population)
+    return sorted_population[:num_elites]
+# End of choose_elites()
+
+
+def _sort(evaluated_population: List[Eval]) -> List[Eval]:
+    """Sorts the evaluated population. Function created for purposes of elitism.
+
+    Params:
+    - evaluated_population (List[Eval]): The evaluated list of all chromosomes in the population
+
+    Returns:
+    - sorted_evaluated_population (List[Eval]): The evaluated list of all chromosomes in the population, sorted by 
+                                                fitness score in descending order
+    """
+    sorted_evaluated_population = sorted(evaluated_population, key=lambda chromosome: chromosome[1], reverse=True)
+    return sorted_evaluated_population
+# End of _sort()
 
 
 """Resources Used:
