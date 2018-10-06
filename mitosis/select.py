@@ -6,14 +6,10 @@
 import random
 from enum import Enum
 from typing import Union, List, Tuple
-from multiprocessing import process
 
 import numpy as np
 
-
-Chromosome = List[int]
-Eval = Tuple[Chromosome, float]
-Parents = Tuple[Chromosome, Chromosome]
+from .types import Chromosome, Eval, Parents
 
 
 class SelectionMethod(Enum):
