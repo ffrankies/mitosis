@@ -27,7 +27,7 @@ def crossover(parent_pairs: List[Parents], method: CrossoverMethod, random_seed:
     - parent_pairs (List[Parents]): The list of parent pairs to be crossed over. Each parent pair produces one child
     - method (CrossoverMethod): The method of crossover to be used
     - random_seed (int or float): The seed for the random number generator
-    - mixing_ration (float): This refers to the probability that any gene or gene slice is selected from the first
+    - mixing_ratio (float): This refers to the probability that any gene or gene slice is selected from the first
                              parent as opposed to the second parent in the parent pair. Defaults to 0.5 (equal
                              probability that the gene is chosen from either parent)
 
@@ -44,9 +44,9 @@ def crossover(parent_pairs: List[Parents], method: CrossoverMethod, random_seed:
     - children (List[Chromosome]): The children produced by crossover
     """
     if method == CrossoverMethod.N_POINT:
-        children = n_point_crossover(parent_pairs, random_seed, num_points)
+        children = n_point_crossover(parent_pairs, random_seed, num_points, mixing_ratio)
     elif method == CrossoverMethod.UNIFORM:
-        raise NotImplementedError()
+        children = uniform_crossover(parent_pairs, random_seed, mixing_ratio)
     elif method == CrossoverMethod.CUSTOM:
         children = custom_function(parent_pairs, custom_args, custom_kwargs)
     else:
@@ -86,7 +86,7 @@ def _n_point_crossover_one_pair(parent_pair: Parents, num_points: int, mixing_ra
     Params:
     - parent_pair (Parents): The pair of parent chromosomes
     - num_points (int): The number of crossover points to be used. Must be less than the length of the chromosome.
-    - mixing_ration (float): This refers to the probability that any gene slice is selected from the first parent as
+    - mixing_ratio (float): This refers to the probability that any gene slice is selected from the first parent as
                              opposed to the second parent in the parent pair. Defaults to 0.5 (equal probability that
                              the gene is chosen from either parent)
 
@@ -111,3 +111,50 @@ def _n_point_crossover_one_pair(parent_pair: Parents, num_points: int, mixing_ra
         child.extend(chromosome_slice)
     return child
 # End of _n_point_crossover_one_pair()
+
+
+def uniform_crossover(parent_pairs: List[Parents], random_seed: float, mixing_ratio: float = 0.5) -> List[Chromosome]:
+    """Uses the n-point crossover method to produce children from parent pairs. Each parent pair produces one child
+    chromosome.
+
+    Params:
+    - parent_pairs (List[Parents]): The list of parent pairs to be crossed over. Each parent pair produces one child
+    - random_seed (int or float): The seed for the random number generator
+    - mixing_ratio (float): This refers to the probability that any gene or gene slice is selected from the first
+                             parent as opposed to the second parent in the parent pair. Defaults to 0.5 (equal
+                             probability that the gene is chosen from either parent)
+    
+    Returns:
+    - children (List[Chromosome]): The children produced by crossover
+    """
+    random.seed(random_seed)
+    children = list()
+    for parent_pair in parent_pairs:
+        child = _uniform_crossover_one_pair(parent_pair, mixing_ratio)
+        children.append(child)
+    return children
+# End of uniform_crossover()
+
+
+def _uniform_crossover_one_pair(parent_pair: Parents, mixing_ratio: float = 0.5) -> Chromosome:
+    """Uses the uniform crossover method to produce a single child from a parent pair.
+    
+    Params:
+    - parent_pair (Parents): The pair of parent chromosomes
+    - mixing_ratio (float): This refers to the probability that any gene slice is selected from the first parent as
+                             opposed to the second parent in the parent pair. Defaults to 0.5 (equal probability that
+                             the gene is chosen from either parent)
+
+    Returns:
+    - child (Chromosome): The child produced by crossover
+    """
+    child = list()
+    parent_one, parent_two = parent_pair
+    for index in range(len(parent_one)):
+        if random.random() < mixing_ratio:
+            gene = parent_one[index]
+        else:
+            gene = parent_two[index]
+        child.append(gene)
+    return child
+# End of _uniform_crossover_one_pair()
