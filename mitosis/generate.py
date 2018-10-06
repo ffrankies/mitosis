@@ -14,7 +14,7 @@ def generate(searchspace_size: int, population_size: int, random_seed: int = 0.1
     - population_size (int): The size of the population to generate
 
     Returns:
-    - population (list<list<int>>): The generated population
+    - population (List[Chromosome]): The generated population
     """
     random.seed(random_seed)
     population = [random.choices([0, 1], k=searchspace_size) for index in range(population_size)]
